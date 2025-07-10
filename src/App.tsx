@@ -190,16 +190,16 @@ const ContractCard: React.FC<{
             >
               <Edit className="h-4 w-4 text-green-500" />
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onClone?.();
-              }}
-              className="p-1.5 hover:bg-blue-50 rounded-lg"
-              title="Clone contract"
-            >
-              <Copy className="h-4 w-4 text-blue-500" />
-            </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClone?.();
+                }}
+                className="p-1.5 hover:bg-blue-50 rounded-lg"
+                title="Clone and edit contract"
+              >
+                <Copy className="h-4 w-4 text-blue-500" />
+              </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -275,7 +275,7 @@ const ContractList: React.FC<{
   onEditContract: (contract: OptionContract) => void;
   onShowDocs: () => void;
 }> = ({ onViewContract, onNewContract, onEditContract, onShowDocs }) => {
-  const { contracts, deleteContract, cloneContract } = useContracts();
+  const { contracts, deleteContract } = useContracts();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
   const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
@@ -472,7 +472,10 @@ const ContractList: React.FC<{
                 contract={contract}
                 onClick={() => onViewContract(contract)}
                 onDelete={() => setShowDeleteConfirm(contract.id)}
-                onClone={() => cloneContract(contract)}
+                onClone={() => {
+                  const { id, createdAt, updatedAt, ...contractData } = contract;
+                  onEditContract(contractData as OptionContract);
+                }}
                 onEdit={() => onEditContract(contract)}
               />
             ))}
@@ -954,13 +957,15 @@ const ContractForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingContract) {
+    if (editingContract?.id) {
+      // This is an actual edit of an existing contract
       updateContract({
         ...editingContract,
         ...formData,
         updatedAt: new Date().toISOString(),
       });
     } else {
+      // This is either a new contract or a clone (no ID)
       addContract(formData);
     }
     onSave();
@@ -1001,10 +1006,15 @@ const ContractForm: React.FC<{
           </Button>
           <div>
             <h2 className="text-3xl font-bold text-gray-900">
-              {editingContract ? 'Edit Contract' : 'New Contract'}
+              {editingContract?.id ? 'Edit Contract' : editingContract ? 'Clone Contract' : 'New Contract'}
             </h2>
             <p className="text-gray-600">
-              {editingContract ? 'Update your options position' : 'Add a new options position to track'}
+              {editingContract?.id 
+                ? 'Update your options position' 
+                : editingContract 
+                ? 'Create a copy of this contract' 
+                : 'Add a new options position to track'
+              }
             </p>
           </div>
         </div>
@@ -1160,9 +1170,9 @@ const ContractForm: React.FC<{
             <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              {editingContract ? 'Update Contract' : 'Save Contract'}
-            </Button>
+              <Button type="submit" className="flex-1">
+                {editingContract?.id ? 'Update Contract' : 'Save Contract'}
+              </Button>
           </div>
         </form>
       </div>
