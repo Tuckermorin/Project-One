@@ -104,21 +104,21 @@ const GreeksCalculator: React.FC = () => {
               className="w-full"
             />
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h4 className="font-medium text-gray-800 dark:text-gray-100">Option Value Impact</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <h4 className="font-medium text-gray-800">Option Value Impact</h4>
+            <p className="text-sm text-gray-600">
               Price Change (per $1 stock move): ${(calculateOptionValueImpact().priceChange).toFixed(2)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Volatility Change (per 1% increase): ${(calculateOptionValueImpact().volatilityChange).toFixed(2)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Daily Time Decay: ${(calculateOptionValueImpact().timeDecay).toFixed(2)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Delta Change (per $1 stock move): ${(calculateOptionValueImpact().gammaImpact).toFixed(2)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Rate Change (per 1% rate increase): ${(calculateOptionValueImpact().rhoImpact).toFixed(2)}
             </p>
           </div>
