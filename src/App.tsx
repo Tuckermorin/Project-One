@@ -5,6 +5,7 @@ import { calculateProfitLoss } from './utils/profitLossCalculator';
 import type { ProfitLossResult } from './utils/profitLossCalculator';
 import { ContractsProvider, useContracts } from './context/ContractsContext';
 import Button from './components/common/Button';
+import OptionsGuide from './components/docs/OptionsGuide';
 
 // Types and Interfaces
 
@@ -398,7 +399,8 @@ const ContractList: React.FC<{
   onNewContract: () => void;
   onEditContract: (contract: OptionContract) => void;
   onSelectGroup: (group: PortfolioGroup) => void;
-}> = ({ onViewContract, onNewContract, onEditContract, onSelectGroup }) => {
+  onShowDocs: () => void;
+}> = ({ onViewContract, onNewContract, onEditContract, onSelectGroup, onShowDocs }) => {
   const { contracts, deleteContract, cloneContract } = useContracts();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
@@ -471,10 +473,15 @@ const ContractList: React.FC<{
               </p>
             </div>
           </div>
-          <Button onClick={onNewContract} size="lg">
-            <Plus className="h-5 w-5" />
-            New Contract
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={onShowDocs} variant="secondary" size="lg">
+              Docs
+            </Button>
+            <Button onClick={onNewContract} size="lg">
+              <Plus className="h-5 w-5" />
+              New Contract
+            </Button>
+          </div>
         </div>
 
         {/* Analytics Dashboard */}
@@ -1261,7 +1268,7 @@ const ContractForm: React.FC<{
 };
 
 // Main App Component
-type View = 'list' | 'form' | 'detail' | 'group';
+type View = 'list' | 'form' | 'detail' | 'group' | 'docs';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('list');
@@ -1310,6 +1317,8 @@ function AppContent() {
         return selectedGroup ? (
           <GroupDetailView group={selectedGroup} onBack={handleBackToList} />
         ) : null;
+      case 'docs':
+        return <OptionsGuide onBack={handleBackToList} />;
       default:
         return (
           <ContractList
@@ -1317,6 +1326,7 @@ function AppContent() {
             onNewContract={handleNewContract}
             onEditContract={handleEditContract}
             onSelectGroup={handleViewGroup}
+            onShowDocs={() => setCurrentView('docs')}
           />
         );
     }
