@@ -30,13 +30,13 @@ const ContractForm: React.FC<ContractFormProps> = ({ onSave, onCancel }) => {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">New Option Contract</h2>
+        <h2 className="text-2xl font-bold text-gray-900">New Option Contract</h2>
         <Button onClick={onCancel} variant="secondary">
           Cancel
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
         <div className="grid grid-cols-2 gap-4">
           <Select
             label="Action"

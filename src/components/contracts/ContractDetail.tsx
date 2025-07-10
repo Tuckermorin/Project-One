@@ -33,7 +33,7 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Contract Details</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Contract Details</h2>
         <Button onClick={onBack} variant="secondary">
           ← Back to List
         </Button>
@@ -41,40 +41,40 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Contract Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Contract Information</h3>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contract Information</h3>
           
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Action:</span>
+              <span className="text-gray-600">Action:</span>
               <span className="font-medium">{contract.buyOrSell.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Type:</span>
+              <span className="text-gray-600">Type:</span>
               <span className="font-medium">{contract.optionType.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Strike Price:</span>
+              <span className="text-gray-600">Strike Price:</span>
               <span className="font-medium">{formatCurrency(contract.strikePrice)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Expiration:</span>
+              <span className="text-gray-600">Expiration:</span>
               <span className="font-medium">{formatDate(contract.expirationDate)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Contracts:</span>
+              <span className="text-gray-600">Contracts:</span>
               <span className="font-medium">{contract.contracts}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Breakeven:</span>
+              <span className="text-gray-600">Breakeven:</span>
               <span className="font-medium">{formatCurrency(contract.breakeven)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Chance of Profit:</span>
+              <span className="text-gray-600">Chance of Profit:</span>
               <span className="font-medium">{contract.chanceOfProfit}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Credit/Debit:</span>
+              <span className="text-gray-600">Credit/Debit:</span>
               <span className={`font-medium ${contract.expectedCreditOrDebit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(contract.expectedCreditOrDebit)}
               </span>
@@ -83,8 +83,8 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => 
         </div>
 
         {/* Profit/Loss Calculator */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Profit/Loss Calculator</h3>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Profit/Loss Calculator</h3>
           
           <div className="space-y-4 mb-6">
             <Input
