@@ -1,33 +1,12 @@
-import React, { useState, createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Target, BarChart3, Eye, Plus, ArrowLeft, Calculator, PieChart, Copy, Edit, Activity, AlertTriangle, Users } from 'lucide-react';
+import type { OptionContract } from './models/OptionContract';
+import { calculateProfitLoss } from './utils/profitLossCalculator';
+import type { ProfitLossResult } from './utils/profitLossCalculator';
+import { ContractsProvider, useContracts } from './context/ContractsContext';
+import Button from './components/common/Button';
 
 // Types and Interfaces
-interface OptionContract {
-  id: string;
-  buyOrSell: 'buy' | 'sell';
-  optionType: 'call' | 'put';
-  expirationDate: string;
-  strikePrice: number;
-  breakeven: number;
-  chanceOfProfit: number;
-  percentChange: number;
-  change: number;
-  bidPrice: number;
-  limitPrice: number;
-  contracts: number;
-  expectedCreditOrDebit: number;
-  createdAt: string;
-  updatedAt: string;
-  symbol?: string;
-  notes?: string;
-}
-
-interface ProfitLossResult {
-  ifSoldNow: number;
-  ifExercisedAtExpiration: number;
-  breakeven: number;
-  daysToExpiration: number;
-}
 
 interface PortfolioGroup {
   symbol: string;
@@ -49,79 +28,8 @@ interface PortfolioSimulation {
 }
 
 // Context Setup
-type ContractsAction =
-  | { type: 'ADD_CONTRACT'; payload: OptionContract }
-  | { type: 'UPDATE_CONTRACT'; payload: OptionContract }
-  | { type: 'DELETE_CONTRACT'; payload: string }
-  | { type: 'LOAD_CONTRACTS'; payload: OptionContract[] };
-
-interface ContractsState {
-  contracts: OptionContract[];
-}
-
-interface ContractsContextType extends ContractsState {
-  addContract: (contract: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateContract: (contract: OptionContract) => void;
-  deleteContract: (id: string) => void;
-  cloneContract: (contract: OptionContract) => void;
-}
-
-const ContractsContext = createContext<ContractsContextType | undefined>(undefined);
-
-const contractsReducer = (state: ContractsState, action: ContractsAction): ContractsState => {
-  switch (action.type) {
-    case 'LOAD_CONTRACTS':
-      return { contracts: action.payload };
-    case 'ADD_CONTRACT':
-      return { contracts: [...state.contracts, action.payload] };
-    case 'UPDATE_CONTRACT':
-      return {
-        contracts: state.contracts.map(contract =>
-          contract.id === action.payload.id ? action.payload : contract
-        ),
-      };
-    case 'DELETE_CONTRACT':
-      return {
-        contracts: state.contracts.filter(contract => contract.id !== action.payload),
-      };
-    default:
-      return state;
-  }
-};
 
 // Utility Functions
-const calculateProfitLoss = (
-  contract: OptionContract,
-  currentUnderlyingPrice: number,
-  currentOptionPrice?: number
-): ProfitLossResult => {
-  const { strikePrice, contracts, expectedCreditOrDebit, buyOrSell, optionType, expirationDate } = contract;
-  
-  const today = new Date();
-  const expiration = new Date(expirationDate);
-  const daysToExpiration = Math.ceil((expiration.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const currentPrice = currentOptionPrice || contract.bidPrice;
-  
-  const totalPremium = expectedCreditOrDebit * contracts * 100;
-  const cashOnClose = currentPrice * contracts * 100 * (buyOrSell === 'buy' ? 1 : -1);
-  const ifSoldNow = cashOnClose + totalPremium;
-
-  const intrinsicPerShare = optionType === 'call'
-    ? Math.max(0, currentUnderlyingPrice - strikePrice)
-    : Math.max(0, strikePrice - currentUnderlyingPrice);
-  const totalIntrinsic = intrinsicPerShare * contracts * 100;
-
-  const ifExercisedAtExpiration = buyOrSell === 'buy'
-    ? totalIntrinsic + totalPremium
-    : totalPremium - totalIntrinsic;
-
-  return {
-    ifSoldNow,
-    ifExercisedAtExpiration,
-    breakeven: contract.breakeven,
-    daysToExpiration,
-  };
-};
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
@@ -140,144 +48,7 @@ const formatProfitLoss = (amount: number): string => {
 
 const getProfitLossColor = (amount: number) => amount >= 0 ? 'text-green-600' : 'text-red-600';
 
-// Hook for localStorage
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-    } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
-    }
-  };
-
-  return [storedValue, setValue] as const;
-}
-
-// Context Provider Component
-const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(contractsReducer, { contracts: [] });
-  const [storedContracts, setStoredContracts] = useLocalStorage<OptionContract[]>('option-contracts', []);
-
-  useEffect(() => {
-    dispatch({ type: 'LOAD_CONTRACTS', payload: storedContracts });
-  }, []);
-
-  useEffect(() => {
-    if (state.contracts.length > 0 || storedContracts.length > 0) {
-      setStoredContracts(state.contracts);
-    }
-  }, [state.contracts]);
-
-  const addContract = (contractData: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newContract: OptionContract = {
-      ...contractData,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    dispatch({ type: 'ADD_CONTRACT', payload: newContract });
-  };
-
-  const updateContract = (contract: OptionContract) => {
-    const updatedContract = { ...contract, updatedAt: new Date().toISOString() };
-    dispatch({ type: 'UPDATE_CONTRACT', payload: updatedContract });
-  };
-
-  const deleteContract = (id: string) => {
-    dispatch({ type: 'DELETE_CONTRACT', payload: id });
-  };
-
-  const cloneContract = (contract: OptionContract) => {
-    const now = new Date().toISOString();
-    const clonedContract: OptionContract = {
-      ...contract,
-      id: crypto.randomUUID(),
-      symbol: contract.symbol ? `${contract.symbol} (Copy)` : 'Contract (Copy)',
-      createdAt: now,
-      updatedAt: now,
-    };
-    dispatch({ type: 'ADD_CONTRACT', payload: clonedContract });
-  };
-
-  return (
-    <ContractsContext.Provider
-      value={{
-        ...state,
-        addContract,
-        updateContract,
-        deleteContract,
-        cloneContract,
-      }}
-    >
-      {children}
-    </ContractsContext.Provider>
-  );
-};
-
-const useContracts = () => {
-  const context = useContext(ContractsContext);
-  if (context === undefined) {
-    throw new Error('useContracts must be used within a ContractsProvider');
-  }
-  return context;
-};
-
 // UI Components
-const Button: React.FC<{
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-  type?: 'button' | 'submit';
-}> = ({
-  children,
-  onClick,
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  type = 'button'
-}) => {
-  const baseClasses = 'font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md';
-  
-  const variantClasses = {
-    primary: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-blue-200',
-    secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200',
-    danger: 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-red-200',
-    ghost: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-  };
-
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-6 py-2.5 text-sm',
-    lg: 'px-8 py-3 text-base',
-  };
-
-  return (
-    <button
-      type={type}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-};
 
 // New Portfolio Analytics Component with Enhanced Metrics
 const PortfolioAnalytics: React.FC<{ contracts: OptionContract[] }> = ({ contracts }) => {
