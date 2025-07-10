@@ -1,5 +1,5 @@
-import React, { useState, createContext, useContext, useReducer, useEffect } from 'react';
-import { Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Target, BarChart3, Eye, Plus, ArrowLeft, Calculator, PieChart, Copy, Edit } from 'lucide-react';
+import React, { useState, createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Target, BarChart3, Eye, Plus, ArrowLeft, Calculator, PieChart, Copy, Edit, Activity, AlertTriangle, Users } from 'lucide-react';
 
 // Types and Interfaces
 interface OptionContract {
@@ -29,6 +29,25 @@ interface ProfitLossResult {
   daysToExpiration: number;
 }
 
+interface PortfolioGroup {
+  symbol: string;
+  contracts: OptionContract[];
+  totalValue: number;
+  totalPositions: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+interface PortfolioSimulation {
+  currentPrice: number;
+  totalPL: number;
+  totalMaxProfit: number;
+  totalMaxLoss: number;
+  contractBreakdowns: Array<{
+    contract: OptionContract;
+    pl: ProfitLossResult;
+  }>;
+}
+
 // Context Setup
 type ContractsAction =
   | { type: 'ADD_CONTRACT'; payload: OptionContract }
@@ -44,7 +63,7 @@ interface ContractsContextType extends ContractsState {
   addContract: (contract: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateContract: (contract: OptionContract) => void;
   deleteContract: (id: string) => void;
-  cloneContract: (contract: OptionContract) => void; // Add this line
+  cloneContract: (contract: OptionContract) => void;
 }
 
 const ContractsContext = createContext<ContractsContextType | undefined>(undefined);
@@ -125,7 +144,7 @@ const getProfitLossColor = (amount: number) => amount >= 0 ? 'text-green-600' : 
 function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
-      const item = window.localStorage.getItem(key);
+      const item = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
@@ -137,7 +156,9 @@ function useLocalStorage<T>(key: string, initialValue: T) {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);
     }
@@ -182,16 +203,16 @@ const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   };
 
   const cloneContract = (contract: OptionContract) => {
-  const now = new Date().toISOString();
-  const clonedContract: OptionContract = {
-    ...contract,
-    id: crypto.randomUUID(),
-    symbol: contract.symbol ? `${contract.symbol} (Copy)` : 'Contract (Copy)',
-    createdAt: now,
-    updatedAt: now,
+    const now = new Date().toISOString();
+    const clonedContract: OptionContract = {
+      ...contract,
+      id: crypto.randomUUID(),
+      symbol: contract.symbol ? `${contract.symbol} (Copy)` : 'Contract (Copy)',
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({ type: 'ADD_CONTRACT', payload: clonedContract });
   };
-  dispatch({ type: 'ADD_CONTRACT', payload: clonedContract });
-};
 
   return (
     <ContractsContext.Provider
@@ -258,7 +279,7 @@ const Button: React.FC<{
   );
 };
 
-// Portfolio Analytics Component
+// New Portfolio Analytics Component with Enhanced Metrics
 const PortfolioAnalytics: React.FC<{ contracts: OptionContract[] }> = ({ contracts }) => {
   const totalValue = contracts.reduce((sum, contract) => {
     return sum + (contract.expectedCreditOrDebit * contract.contracts * 100);
@@ -278,8 +299,15 @@ const PortfolioAnalytics: React.FC<{ contracts: OptionContract[] }> = ({ contrac
       }))
     : 0;
 
+  const expiringThisWeek = contracts.filter(c => {
+    const today = new Date();
+    const expiry = new Date(c.expirationDate);
+    const days = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return days <= 7 && days >= 0;
+  }).length;
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -330,6 +358,139 @@ const PortfolioAnalytics: React.FC<{ contracts: OptionContract[] }> = ({ contrac
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Expiring This Week</p>
+            <p className={`text-2xl font-bold ${expiringThisWeek > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+              {expiringThisWeek}
+            </p>
+            {expiringThisWeek > 0 && (
+              <p className="text-xs text-orange-500 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Review needed
+              </p>
+            )}
+          </div>
+          <div className={`p-3 rounded-xl ${expiringThisWeek > 0 ? 'bg-orange-50' : 'bg-gray-50'}`}>
+            <Activity className={`h-6 w-6 ${expiringThisWeek > 0 ? 'text-orange-600' : 'text-gray-600'}`} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// New Portfolio Simulator Component
+const PortfolioSimulator: React.FC<{ 
+  portfolioGroups: PortfolioGroup[];
+  onSelectGroup: (group: PortfolioGroup) => void;
+}> = ({ portfolioGroups, onSelectGroup }) => {
+  const [globalSimulationPrice, setGlobalSimulationPrice] = useState<number>(100);
+  
+  const calculatePortfolioSimulation = (price: number): PortfolioSimulation => {
+    let totalPL = 0;
+    let totalMaxProfit = 0;
+    let totalMaxLoss = 0;
+    const contractBreakdowns: Array<{contract: OptionContract; pl: ProfitLossResult}> = [];
+
+    portfolioGroups.forEach(group => {
+      group.contracts.forEach(contract => {
+        const pl = calculateProfitLoss(contract, price);
+        totalPL += pl.ifSoldNow;
+        totalMaxProfit += Math.max(pl.ifSoldNow, pl.ifExercisedAtExpiration);
+        totalMaxLoss += Math.min(pl.ifSoldNow, pl.ifExercisedAtExpiration);
+        contractBreakdowns.push({ contract, pl });
+      });
+    });
+
+    return {
+      currentPrice: price,
+      totalPL,
+      totalMaxProfit,
+      totalMaxLoss,
+      contractBreakdowns
+    };
+  };
+
+  const simulation = calculatePortfolioSimulation(globalSimulationPrice);
+  
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <Calculator className="h-5 w-5" />
+          Portfolio Simulator
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-gray-700">Global Price:</label>
+          <input
+            type="number"
+            step="0.01"
+            value={globalSimulationPrice}
+            onChange={(e) => setGlobalSimulationPrice(parseFloat(e.target.value) || 100)}
+            className="w-24 px-3 py-1 border border-gray-300 rounded-lg text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
+          <h4 className="font-semibold text-blue-800 mb-2">Current P/L</h4>
+          <p className={`text-2xl font-bold ${getProfitLossColor(simulation.totalPL)}`}>
+            {formatProfitLoss(simulation.totalPL)}
+          </p>
+        </div>
+        
+        <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
+          <h4 className="font-semibold text-green-800 mb-2">Max Profit Potential</h4>
+          <p className="text-2xl font-bold text-green-600">
+            {formatProfitLoss(simulation.totalMaxProfit)}
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl border border-red-200">
+          <h4 className="font-semibold text-red-800 mb-2">Max Loss Potential</h4>
+          <p className="text-2xl font-bold text-red-600">
+            {formatProfitLoss(simulation.totalMaxLoss)}
+          </p>
+        </div>
+      </div>
+
+      {portfolioGroups.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-4">By Underlying</h4>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {portfolioGroups.map(group => {
+              const groupPL = group.contracts.reduce((sum, contract) => {
+                const pl = calculateProfitLoss(contract, globalSimulationPrice);
+                return sum + pl.ifSoldNow;
+              }, 0);
+
+              return (
+                <div 
+                  key={group.symbol}
+                  onClick={() => onSelectGroup(group)}
+                  className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-colors"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h5 className="font-semibold text-gray-900">{group.symbol}</h5>
+                    <span className="text-sm text-gray-500">{group.totalPositions} contracts</span>
+                  </div>
+                  <p className={`text-lg font-bold ${getProfitLossColor(groupPL)}`}>
+                    {formatProfitLoss(groupPL)}
+                  </p>
+                  <div className="flex justify-between text-sm text-gray-600 mt-2">
+                    <span>Risk: {group.riskLevel}</span>
+                    <span>Value: {formatCurrency(group.totalValue)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -460,28 +621,84 @@ const ContractCard: React.FC<{
   );
 };
 
-// Contract List Component
+// Contract List Component with Portfolio Grouping
 const ContractList: React.FC<{
   onViewContract: (contract: OptionContract) => void;
   onNewContract: () => void;
   onEditContract: (contract: OptionContract) => void;
-}> = ({ onViewContract, onNewContract, onEditContract }) => {
+  onSelectGroup: (group: PortfolioGroup) => void;
+}> = ({ onViewContract, onNewContract, onEditContract, onSelectGroup }) => {
   const { contracts, deleteContract, cloneContract } = useContracts();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
+
+  // Group contracts by symbol
+  const portfolioGroups = useMemo((): PortfolioGroup[] => {
+    const groups = contracts.reduce((acc, contract) => {
+      const symbol = contract.symbol || 'Unknown';
+      if (!acc[symbol]) {
+        acc[symbol] = [];
+      }
+      acc[symbol].push(contract);
+      return acc;
+    }, {} as Record<string, OptionContract[]>);
+
+    return Object.entries(groups).map(([symbol, contracts]) => {
+      const totalValue = contracts.reduce((sum, c) => sum + (c.expectedCreditOrDebit * c.contracts * 100), 0);
+      const totalPositions = contracts.reduce((sum, c) => sum + c.contracts, 0);
+      
+      // Simple risk calculation based on days to expiry and value
+      const avgDaysToExpiry = contracts.reduce((sum, c) => {
+        const today = new Date();
+        const expiry = new Date(c.expirationDate);
+        const days = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return sum + days;
+      }, 0) / contracts.length;
+
+      let riskLevel: 'low' | 'medium' | 'high' = 'low';
+      if (avgDaysToExpiry < 14 || Math.abs(totalValue) > 5000) riskLevel = 'high';
+      else if (avgDaysToExpiry < 30 || Math.abs(totalValue) > 2000) riskLevel = 'medium';
+
+      return {
+        symbol,
+        contracts,
+        totalValue,
+        totalPositions,
+        riskLevel
+      };
+    });
+  }, [contracts]);
 
   const handleDelete = (contractId: string) => {
     deleteContract(contractId);
     setShowDeleteConfirm(null);
   };
 
+  const displayContracts = selectedGroup ? selectedGroup.contracts : contracts;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Options Tracker</h1>
-            <p className="text-gray-600">Analyze and manage your options positions</p>
+          <div className="flex items-center gap-4">
+            {selectedGroup && (
+              <Button onClick={() => setSelectedGroup(null)} variant="secondary" size="sm">
+                <ArrowLeft className="h-4 w-4" />
+                All Contracts
+              </Button>
+            )}
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                {selectedGroup ? `${selectedGroup.symbol} Contracts` : 'Options Tracker'}
+              </h1>
+              <p className="text-gray-600">
+                {selectedGroup 
+                  ? `${selectedGroup.totalPositions} positions in ${selectedGroup.symbol}` 
+                  : 'Analyze and manage your options positions'
+                }
+              </p>
+            </div>
           </div>
           <Button onClick={onNewContract} size="lg">
             <Plus className="h-5 w-5" />
@@ -490,24 +707,85 @@ const ContractList: React.FC<{
         </div>
 
         {/* Analytics Dashboard */}
-        <PortfolioAnalytics contracts={contracts} />
+        <PortfolioAnalytics contracts={displayContracts} />
+
+        {/* Portfolio Simulator - only show when viewing all contracts */}
+        {!selectedGroup && portfolioGroups.length > 0 && (
+          <PortfolioSimulator 
+            portfolioGroups={portfolioGroups} 
+            onSelectGroup={onSelectGroup}
+          />
+        )}
+
+        {/* Portfolio Groups Overview - only show when viewing all contracts */}
+        {!selectedGroup && portfolioGroups.length > 1 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Portfolio by Underlying
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {portfolioGroups.map(group => (
+                <div 
+                  key={group.symbol}
+                  onClick={() => setSelectedGroup(group)}
+                  className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 hover:from-gray-100 hover:to-gray-200 cursor-pointer transition-all duration-200 border border-gray-200"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-bold text-lg text-gray-900">{group.symbol}</h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      group.riskLevel === 'high' ? 'bg-red-100 text-red-700' :
+                      group.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {group.riskLevel} risk
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Positions:</span>
+                      <span className="font-medium">{group.contracts.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Contracts:</span>
+                      <span className="font-medium">{group.totalPositions}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Portfolio Value:</span>
+                      <span className={`font-bold ${getProfitLossColor(group.totalValue)}`}>
+                        {formatProfitLoss(group.totalValue)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Contracts Grid */}
-        {contracts.length === 0 ? (
+        {displayContracts.length === 0 ? (
           <div className="text-center py-16">
             <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 max-w-md mx-auto">
               <PieChart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No contracts yet</h3>
-              <p className="text-gray-500 mb-6">Create your first option contract to start tracking your positions</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {selectedGroup ? `No contracts for ${selectedGroup.symbol}` : 'No contracts yet'}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {selectedGroup 
+                  ? "This symbol doesn't have any contracts yet" 
+                  : 'Create your first option contract to start tracking your positions'
+                }
+              </p>
               <Button onClick={onNewContract}>
                 <Plus className="h-4 w-4" />
-                Add Your First Contract
+                {selectedGroup ? `Add Contract for ${selectedGroup.symbol}` : 'Add Your First Contract'}
               </Button>
             </div>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {contracts.map(contract => (
+            {displayContracts.map(contract => (
               <ContractCard
                 key={contract.id}
                 contract={contract}
@@ -545,6 +823,144 @@ const ContractList: React.FC<{
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Group Detail View
+const GroupDetailView: React.FC<{
+  group: PortfolioGroup;
+  onBack: () => void;
+}> = ({ group, onBack }) => {
+  const [simulationPrice, setSimulationPrice] = useState<number>(100);
+
+  const groupSimulation = useMemo(() => {
+    return group.contracts.map(contract => ({
+      contract,
+      pl: calculateProfitLoss(contract, simulationPrice)
+    }));
+  }, [group.contracts, simulationPrice]);
+
+  const totalPL = groupSimulation.reduce((sum, item) => sum + item.pl.ifSoldNow, 0);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="flex items-center gap-4 mb-8">
+          <Button onClick={onBack} variant="secondary">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Portfolio
+          </Button>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">{group.symbol} Analysis</h2>
+            <p className="text-gray-600">{group.contracts.length} positions • {group.totalPositions} total contracts</p>
+          </div>
+        </div>
+
+        {/* Group Simulator */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              {group.symbol} Price Simulator
+            </h3>
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700">{group.symbol} Price:</label>
+              <input
+                type="number"
+                step="0.01"
+                value={simulationPrice}
+                onChange={(e) => setSimulationPrice(parseFloat(e.target.value) || 100)}
+                className="w-24 px-3 py-1 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200 mb-6">
+            <h4 className="font-semibold text-blue-800 mb-2">Total P/L at ${simulationPrice}</h4>
+            <p className={`text-3xl font-bold ${getProfitLossColor(totalPL)}`}>
+              {formatProfitLoss(totalPL)}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Contract</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Type</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Strike</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Contracts</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">P/L if Closed</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">P/L at Expiry</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Days to Exp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupSimulation.map(({ contract, pl }) => (
+                  <tr key={contract.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          contract.buyOrSell === 'buy' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {contract.buyOrSell.toUpperCase()}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          contract.optionType === 'call' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {contract.optionType.toUpperCase()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-medium">{contract.optionType.toUpperCase()}</td>
+                    <td className="py-3 px-4">{formatCurrency(contract.strikePrice)}</td>
+                    <td className="py-3 px-4">{contract.contracts}</td>
+                    <td className={`py-3 px-4 font-semibold ${getProfitLossColor(pl.ifSoldNow)}`}>
+                      {formatProfitLoss(pl.ifSoldNow)}
+                    </td>
+                    <td className={`py-3 px-4 font-semibold ${getProfitLossColor(pl.ifExercisedAtExpiration)}`}>
+                      {formatProfitLoss(pl.ifExercisedAtExpiration)}
+                    </td>
+                    <td className="py-3 px-4">{pl.daysToExpiration}d</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Price Scenario Analysis */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">Price Scenario Analysis</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              { label: 'Bear Case (-20%)', multiplier: 0.8 },
+              { label: 'Mild Bear (-10%)', multiplier: 0.9 },
+              { label: 'Current Price', multiplier: 1.0 },
+              { label: 'Mild Bull (+10%)', multiplier: 1.1 },
+              { label: 'Bull Case (+20%)', multiplier: 1.2 },
+              { label: 'Moon Shot (+50%)', multiplier: 1.5 },
+            ].map(scenario => {
+              const scenarioPrice = simulationPrice * scenario.multiplier;
+              const scenarioPL = group.contracts.reduce((sum, contract) => {
+                const pl = calculateProfitLoss(contract, scenarioPrice);
+                return sum + pl.ifSoldNow;
+              }, 0);
+
+              return (
+                <div key={scenario.label} className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-gray-800 mb-2">{scenario.label}</h4>
+                  <p className="text-sm text-gray-600 mb-1">Price: {formatCurrency(scenarioPrice)}</p>
+                  <p className={`text-lg font-bold ${getProfitLossColor(scenarioPL)}`}>
+                    {formatProfitLoss(scenarioPL)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1074,13 +1490,14 @@ const ContractForm: React.FC<{
 };
 
 // Main App Component
-type View = 'list' | 'form' | 'detail';
+type View = 'list' | 'form' | 'detail' | 'group';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('list');
   const [selectedContract, setSelectedContract] = useState<OptionContract | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
 
-const handleViewContract = (contract: OptionContract) => {
+  const handleViewContract = (contract: OptionContract) => {
     setSelectedContract(contract);
     setCurrentView('detail');
   };
@@ -1095,9 +1512,15 @@ const handleViewContract = (contract: OptionContract) => {
     setCurrentView('form');
   };
 
+  const handleViewGroup = (group: PortfolioGroup) => {
+    setSelectedGroup(group);
+    setCurrentView('group');
+  };
+
   const handleBackToList = () => {
     setCurrentView('list');
     setSelectedContract(null);
+    setSelectedGroup(null);
   };
 
   const renderCurrentView = () => {
@@ -1112,12 +1535,17 @@ const handleViewContract = (contract: OptionContract) => {
         return selectedContract ? (
           <ContractDetail contract={selectedContract} onBack={handleBackToList} />
         ) : null;
+      case 'group':
+        return selectedGroup ? (
+          <GroupDetailView group={selectedGroup} onBack={handleBackToList} />
+        ) : null;
       default:
         return (
           <ContractList
             onViewContract={handleViewContract}
             onNewContract={handleNewContract}
             onEditContract={handleEditContract}
+            onSelectGroup={handleViewGroup}
           />
         );
     }
