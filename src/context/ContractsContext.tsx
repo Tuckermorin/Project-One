@@ -16,6 +16,7 @@ interface ContractsContextType extends ContractsState {
   addContract: (contract: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateContract: (contract: OptionContract) => void;
   deleteContract: (id: string) => void;
+  cloneContract: (contract: OptionContract) => void;
 }
 
 const ContractsContext = createContext<ContractsContextType | undefined>(undefined);
@@ -75,6 +76,18 @@ useEffect(() => {
     dispatch({ type: 'DELETE_CONTRACT', payload: id });
   };
 
+  const cloneContract = (contract: OptionContract) => {
+    const now = new Date().toISOString();
+    const clonedContract: OptionContract = {
+      ...contract,
+      id: crypto.randomUUID(),
+      symbol: contract.symbol ? `${contract.symbol} (Copy)` : 'Contract (Copy)',
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({ type: 'ADD_CONTRACT', payload: clonedContract });
+  };
+
   return (
     <ContractsContext.Provider
       value={{
@@ -82,6 +95,7 @@ useEffect(() => {
         addContract,
         updateContract,
         deleteContract,
+        cloneContract,
       }}
     >
       {children}
@@ -89,6 +103,7 @@ useEffect(() => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useContracts = () => {
   const context = useContext(ContractsContext);
   if (context === undefined) {

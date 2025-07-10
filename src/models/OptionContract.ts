@@ -15,6 +15,10 @@ export interface OptionContract {
   expectedCreditOrDebit: number; // positive for credit, negative for debit
   createdAt: string;
   updatedAt: string;
+  /** Optional stock symbol this contract belongs to */
+  symbol?: string;
+  /** Optional notes about the trade */
+  notes?: string;
 }
 
 export type ContractAction = 'buy' | 'sell';
@@ -33,4 +37,6 @@ export const createEmptyContract = (): Omit<OptionContract, 'id' | 'createdAt' |
   limitPrice: 0,
   contracts: 1,
   expectedCreditOrDebit: 0,
+  symbol: '',
+  notes: '',
 });
