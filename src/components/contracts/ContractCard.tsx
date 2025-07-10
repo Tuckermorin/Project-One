@@ -22,24 +22,24 @@ const ContractCard: React.FC<ContractCardProps> = ({ contract, onClick }) => {
   const profitLossColor = isCredit ? 'text-green-600' : 'text-red-600';
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700"
     >
       <div className="flex justify-between items-start mb-2">
         <div>
-          <h3 className="font-semibold text-lg text-gray-900">
+          <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
             {contract.buyOrSell.toUpperCase()} {contract.optionType.toUpperCase()}
           </h3>
-          <p className="text-gray-600">Strike: {formatCurrency(contract.strikePrice)}</p>
+          <p className="text-gray-600 dark:text-gray-400">Strike: {formatCurrency(contract.strikePrice)}</p>
         </div>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           {contract.contracts} contract{contract.contracts !== 1 ? 's' : ''}
         </span>
       </div>
 
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-600 dark:text-gray-400">
           Expires: {formatDate(contract.expirationDate)}
         </span>
         <span className={`font-medium ${profitLossColor}`}>
