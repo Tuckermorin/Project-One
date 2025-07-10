@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Target, BarChart3, Eye, Plus, ArrowLeft, Calculator, PieChart, Copy, Edit, Activity, AlertTriangle, Users } from 'lucide-react';
 import type { OptionContract } from './models/OptionContract';
 import { calculateProfitLoss } from './utils/profitLossCalculator';
-import type { ProfitLossResult } from './utils/profitLossCalculator';
 import { ContractsProvider, useContracts } from './context/ContractsContext';
 import Button from './components/common/Button';
 import OptionsGuide from './components/docs/OptionsGuide';
@@ -16,19 +15,6 @@ interface PortfolioGroup {
   totalPositions: number;
   riskLevel: 'low' | 'medium' | 'high';
 }
-
-interface PortfolioSimulation {
-  currentPrice: number;
-  totalPL: number;
-  totalMaxProfit: number;
-  totalMaxLoss: number;
-  contractBreakdowns: Array<{
-    contract: OptionContract;
-    pl: ProfitLossResult;
-  }>;
-}
-
-// Context Setup
 
 // Utility Functions
 
@@ -154,118 +140,7 @@ const PortfolioAnalytics: React.FC<{ contracts: OptionContract[] }> = ({ contrac
   );
 };
 
-// New Portfolio Simulator Component
-const PortfolioSimulator: React.FC<{ 
-  portfolioGroups: PortfolioGroup[];
-  onSelectGroup: (group: PortfolioGroup) => void;
-}> = ({ portfolioGroups, onSelectGroup }) => {
-  const [globalSimulationPrice, setGlobalSimulationPrice] = useState<number>(100);
-  
-  const calculatePortfolioSimulation = (price: number): PortfolioSimulation => {
-    let totalPL = 0;
-    let totalMaxProfit = 0;
-    let totalMaxLoss = 0;
-    const contractBreakdowns: Array<{contract: OptionContract; pl: ProfitLossResult}> = [];
 
-    portfolioGroups.forEach(group => {
-      group.contracts.forEach(contract => {
-        const pl = calculateProfitLoss(contract, price);
-        totalPL += pl.ifSoldNow;
-        totalMaxProfit += Math.max(pl.ifSoldNow, pl.ifExercisedAtExpiration);
-        totalMaxLoss += Math.min(pl.ifSoldNow, pl.ifExercisedAtExpiration);
-        contractBreakdowns.push({ contract, pl });
-      });
-    });
-
-    return {
-      currentPrice: price,
-      totalPL,
-      totalMaxProfit,
-      totalMaxLoss,
-      contractBreakdowns
-    };
-  };
-
-  const simulation = calculatePortfolioSimulation(globalSimulationPrice);
-  
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
-          Portfolio Simulator
-        </h3>
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-700">Global Price:</label>
-          <input
-            type="number"
-            step="0.01"
-            value={globalSimulationPrice}
-            onChange={(e) => setGlobalSimulationPrice(parseFloat(e.target.value) || 100)}
-            className="w-24 px-3 py-1 border border-gray-300 rounded-lg text-sm"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-2">Current P/L</h4>
-          <p className={`text-2xl font-bold ${getProfitLossColor(simulation.totalPL)}`}>
-            {formatProfitLoss(simulation.totalPL)}
-          </p>
-        </div>
-        
-        <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-          <h4 className="font-semibold text-green-800 mb-2">Max Profit Potential</h4>
-          <p className="text-2xl font-bold text-green-600">
-            {formatProfitLoss(simulation.totalMaxProfit)}
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl border border-red-200">
-          <h4 className="font-semibold text-red-800 mb-2">Max Loss Potential</h4>
-          <p className="text-2xl font-bold text-red-600">
-            {formatProfitLoss(simulation.totalMaxLoss)}
-          </p>
-        </div>
-      </div>
-
-      {portfolioGroups.length > 0 && (
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-4">By Underlying</h4>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {portfolioGroups.map(group => {
-              const groupPL = group.contracts.reduce((sum, contract) => {
-                const pl = calculateProfitLoss(contract, globalSimulationPrice);
-                return sum + pl.ifSoldNow;
-              }, 0);
-
-              return (
-                <div 
-                  key={group.symbol}
-                  onClick={() => onSelectGroup(group)}
-                  className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-colors"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="font-semibold text-gray-900">{group.symbol}</h5>
-                    <span className="text-sm text-gray-500">{group.totalPositions} contracts</span>
-                  </div>
-                  <p className={`text-lg font-bold ${getProfitLossColor(groupPL)}`}>
-                    {formatProfitLoss(groupPL)}
-                  </p>
-                  <div className="flex justify-between text-sm text-gray-600 mt-2">
-                    <span>Risk: {group.riskLevel}</span>
-                    <span>Value: {formatCurrency(group.totalValue)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // Enhanced Contract Card
 const ContractCard: React.FC<{
@@ -398,12 +273,12 @@ const ContractList: React.FC<{
   onViewContract: (contract: OptionContract) => void;
   onNewContract: () => void;
   onEditContract: (contract: OptionContract) => void;
-  onSelectGroup: (group: PortfolioGroup) => void;
   onShowDocs: () => void;
-}> = ({ onViewContract, onNewContract, onEditContract, onSelectGroup, onShowDocs }) => {
+}> = ({ onViewContract, onNewContract, onEditContract, onShowDocs }) => {
   const { contracts, deleteContract, cloneContract } = useContracts();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
+  const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
 
   // Group contracts by symbol
   const portfolioGroups = useMemo((): PortfolioGroup[] => {
@@ -487,13 +362,7 @@ const ContractList: React.FC<{
         {/* Analytics Dashboard */}
         <PortfolioAnalytics contracts={displayContracts} />
 
-        {/* Portfolio Simulator - only show when viewing all contracts */}
-        {!selectedGroup && portfolioGroups.length > 0 && (
-          <PortfolioSimulator 
-            portfolioGroups={portfolioGroups} 
-            onSelectGroup={onSelectGroup}
-          />
-        )}
+        {/* Removed global portfolio simulator - moved to individual group views */}  
 
         {/* Portfolio Groups Overview - only show when viewing all contracts */}
         {!selectedGroup && portfolioGroups.length > 1 && (
@@ -519,22 +388,56 @@ const ContractList: React.FC<{
                       {group.riskLevel} risk
                     </span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Positions:</span>
-                      <span className="font-medium">{group.contracts.length}</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Positions:</span>
+                        <span className="font-medium">{group.contracts.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total Contracts:</span>
+                        <span className="font-medium">{group.totalPositions}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Portfolio Value:</span>
+                        <span className={`font-bold ${getProfitLossColor(group.totalValue)}`}>
+                          {formatProfitLoss(group.totalValue)}
+                        </span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-2">
+                        <div className="text-xs text-gray-500 mb-1">Quick Simulator:</div>
+                        {(() => {
+                          const currentPrice = groupSimPrices[group.symbol] || 0;
+                          const simPL = currentPrice > 0 ? group.contracts.reduce((sum, contract) => {
+                            const pl = calculateProfitLoss(contract, currentPrice);
+                            return sum + pl.ifSoldNow;
+                          }, 0) : 0;
+                          
+                          return (
+                            <>
+                              <input
+                                type="number"
+                                placeholder="Stock price"
+                                className="w-full text-xs px-2 py-1 border border-gray-300 rounded"
+                                value={currentPrice || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  const price = parseFloat(e.target.value) || 0;
+                                  setGroupSimPrices(prev => ({
+                                    ...prev,
+                                    [group.symbol]: price
+                                  }));
+                                }}
+                              />
+                              {currentPrice > 0 && (
+                                <div className={`text-xs font-medium mt-1 ${getProfitLossColor(simPL)}`}>
+                                  P/L: {formatProfitLoss(simPL)}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Total Contracts:</span>
-                      <span className="font-medium">{group.totalPositions}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Portfolio Value:</span>
-                      <span className={`font-bold ${getProfitLossColor(group.totalValue)}`}>
-                        {formatProfitLoss(group.totalValue)}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
@@ -1290,11 +1193,6 @@ function AppContent() {
     setCurrentView('form');
   };
 
-  const handleViewGroup = (group: PortfolioGroup) => {
-    setSelectedGroup(group);
-    setCurrentView('group');
-  };
-
   const handleBackToList = () => {
     setCurrentView('list');
     setSelectedContract(null);
@@ -1325,7 +1223,6 @@ function AppContent() {
             onViewContract={handleViewContract}
             onNewContract={handleNewContract}
             onEditContract={handleEditContract}
-            onSelectGroup={handleViewGroup}
             onShowDocs={() => setCurrentView('docs')}
           />
         );
