@@ -96,12 +96,12 @@ const StrategyCard = ({
   icon: any;
   onSimulate: (strategy: string) => void;
 }) => (
-  <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
     <div className="flex items-start gap-3">
       <Icon className="h-5 w-5 text-blue-600 mt-1" />
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
         <p className="text-xs text-blue-600 mt-2 font-medium">Market Outlook: {outlook}</p>
         <Button 
           onClick={() => onSimulate(strategy)}
@@ -304,8 +304,8 @@ const OptionsGuide: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex">
-      <aside className="hidden sm:block w-56 bg-white border-r border-gray-200 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex">
+      <aside className="hidden sm:block w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6">
         <nav className="space-y-2">
           {sections.map((section) => (
             <button
@@ -322,22 +322,22 @@ const OptionsGuide: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </aside>
       
       <main className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center gap-4 mb-6">
             <Button onClick={onBack} variant="secondary" size="sm">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <h2 className="text-2xl font-bold text-gray-900">{sections.find((s) => s.id === active)?.title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{sections.find((s) => s.id === active)?.title}</h2>
           </div>
           <div className="prose max-w-none">{sections.find((s) => s.id === active)?.content}</div>
         </div>
         
         {simulation && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {getStrategyTitle(simulation.strategy)} Simulation
                 </h3>
                 <Button onClick={closeSimulation} variant="secondary" size="sm">

@@ -4,6 +4,7 @@ import type { OptionContract } from './models/OptionContract';
 import { calculateProfitLoss } from './utils/profitLossCalculator';
 import { ContractsProvider, useContracts } from './context/ContractsContext';
 import Button from './components/common/Button';
+import ThemeToggle from './components/common/ThemeToggle';
 import OptionsGuide from './components/docs/OptionsGuide';
 
 // Types and Interfaces
@@ -325,7 +326,7 @@ const ContractList: React.FC<{
   const displayContracts = selectedGroup ? selectedGroup.contracts : contracts;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -348,7 +349,8 @@ const ContractList: React.FC<{
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <ThemeToggle />
             <Button onClick={onShowDocs} variant="secondary" size="lg">
               Docs
             </Button>
@@ -526,7 +528,7 @@ const GroupDetailView: React.FC<{
   const totalPL = groupSimulation.reduce((sum, item) => sum + item.pl.ifSoldNow, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex items-center gap-4 mb-8">
           <Button onClick={onBack} variant="secondary">
@@ -711,7 +713,7 @@ const ContractDetail: React.FC<{
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -992,7 +994,7 @@ const ContractForm: React.FC<{
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-3xl mx-auto p-6">
         <div className="flex items-center gap-4 mb-8">
           <Button onClick={onCancel} variant="secondary">
