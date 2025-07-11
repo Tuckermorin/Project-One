@@ -25,6 +25,11 @@ const ExpiredOptionsPage: React.FC<ExpiredOptionsPageProps> = ({ onBack, onExpir
     whatWentRight: '',
     whatWentWrong: ''
   });
+  const isITM = selectedContract
+    ? selectedContract.optionType === 'call'
+      ? finalPrice > selectedContract.strikePrice
+      : finalPrice < selectedContract.strikePrice
+    : false;
 
   const expiringToday = activeContracts.filter(contract => {
     const today = new Date();
@@ -233,6 +238,11 @@ const ExpiredOptionsPage: React.FC<ExpiredOptionsPageProps> = ({ onBack, onExpir
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter final stock price"
                   />
+                  {finalPrice > 0 && (
+                    <p className={`mt-2 text-sm font-medium ${isITM ? 'text-green-600' : 'text-red-600'}`}> 
+                      {isITM ? 'In the Money' : 'Out of the Money'}
+                    </p>
+                  )}
                 </div>
                 
                 <div>

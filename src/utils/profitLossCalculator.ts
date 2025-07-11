@@ -42,7 +42,8 @@ export const calculateProfitLoss = (
   }
 
   // P/L if closed now
-  const cashOnClose = currentPrice * contracts * 100 * (buyOrSell === 'buy' ? -1 : 1);
+  // Long positions receive cash when selling to close, short positions pay cash
+  const cashOnClose = currentPrice * contracts * 100 * (buyOrSell === 'buy' ? 1 : -1);
   const ifSoldNow = totalPremium + cashOnClose;
 
   // P/L at expiration
