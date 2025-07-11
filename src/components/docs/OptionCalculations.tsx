@@ -17,9 +17,10 @@ export const calculatePayoff = (simulation: StrategySimulation) => {
   } else if (simulation.strategy === 'vertical-spread') {
     const buyStrike = simulation.buyStrike || 100;
     const sellStrike = simulation.sellStrike || 105;
-    const itm = simulation.stockPrice < buyStrike && simulation.stockPrice > sellStrike;
-    const payoff = Math.max(Math.min(buyStrike - simulation.stockPrice, buyStrike - sellStrike) - simulation.premium, -simulation.premium);
-    const maxReturn = buyStrike - sellStrike - simulation.premium;
+    const intrinsic = Math.max(0, simulation.stockPrice - buyStrike);
+    const payoff = Math.min(intrinsic, sellStrike - buyStrike) - simulation.premium;
+    const itm = simulation.stockPrice > buyStrike;
+    const maxReturn = sellStrike - buyStrike - simulation.premium;
     const maxLoss = -simulation.premium;
     return { itm, payoff, maxReturn, maxLoss };
   }

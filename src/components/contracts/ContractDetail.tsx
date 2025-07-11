@@ -3,6 +3,7 @@ import type { OptionContract } from '../../models/OptionContract';
 import { calculateProfitLoss, formatProfitLoss } from '../../utils/profitLossCalculator';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import { useContracts } from '../../context/ContractsContext';
 
 interface ContractDetailProps {
   contract: OptionContract;
@@ -12,6 +13,10 @@ interface ContractDetailProps {
 const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => {
   const [currentUnderlyingPrice, setCurrentUnderlyingPrice] = useState<number>(contract.strikePrice);
   const [currentOptionPrice, setCurrentOptionPrice] = useState<number>(contract.bidPrice);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeUnderlyingPrice, setCloseUnderlyingPrice] = useState(contract.strikePrice);
+  const [closeOptionPrice, setCloseOptionPrice] = useState(contract.bidPrice);
+  const { closeContract } = useContracts();
 
   const profitLoss = calculateProfitLoss(contract, currentUnderlyingPrice, currentOptionPrice);
 
@@ -28,6 +33,12 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => 
 
   const getProfitLossColor = (amount: number) => {
     return amount >= 0 ? 'text-green-600' : 'text-red-600';
+  };
+
+  const handleCloseContract = async () => {
+    await closeContract(contract.id, closeUnderlyingPrice, closeOptionPrice);
+    setShowCloseModal(false);
+    onBack();
   };
 
   return (
@@ -127,6 +138,44 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contract, onBack }) => 
           </div>
         </div>
       </div>
+
+      <div className="mt-6 flex justify-end">
+        <Button onClick={() => setShowCloseModal(true)}>
+          Close Position
+        </Button>
+      </div>
+
+      {showCloseModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Close Contract</h3>
+            <div className="space-y-4 mb-6">
+              <Input
+                label="Underlying Price"
+                type="number"
+                step="0.01"
+                value={closeUnderlyingPrice}
+                onChange={e => setCloseUnderlyingPrice(parseFloat(e.target.value) || 0)}
+              />
+              <Input
+                label="Option Price"
+                type="number"
+                step="0.01"
+                value={closeOptionPrice}
+                onChange={e => setCloseOptionPrice(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={() => setShowCloseModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleCloseContract} className="flex-1">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

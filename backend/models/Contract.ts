@@ -13,7 +13,18 @@ const contractSchema = new mongoose.Schema({
   contracts: { type: Number, required: true, min: 1, default: 1 },
   expectedCreditOrDebit: { type: Number, required: true },
   notes: { type: String, trim: true },
-  status: { type: String, enum: ['open', 'closed', 'expired'], default: 'open' }
+  status: { type: String, enum: ['open', 'closed', 'expired'], default: 'open' },
+  finalUnderlyingPrice: { type: Number },
+  finalProfitLoss: { type: Number },
+  closedDate: { type: Date },
+  analysis: {
+    wasProfit: Boolean,
+    reasonForOutcome: String,
+    lessonsLearned: String,
+    marketConditions: String,
+    whatWentRight: String,
+    whatWentWrong: String
+  }
 }, {
   timestamps: true
 });

@@ -233,6 +233,17 @@ const ExpiredOptionsPage: React.FC<ExpiredOptionsPageProps> = ({ onBack, onExpir
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter final stock price"
                   />
+                  {finalPrice > 0 && (
+                    <p className="mt-1 text-sm font-medium">
+                      {selectedContract.optionType === 'call'
+                        ? finalPrice > selectedContract.strikePrice
+                          ? 'In the money'
+                          : 'Out of the money'
+                        : finalPrice < selectedContract.strikePrice
+                          ? 'In the money'
+                          : 'Out of the money'}
+                    </p>
+                  )}
                 </div>
                 
                 <div>

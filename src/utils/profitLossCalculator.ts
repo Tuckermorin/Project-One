@@ -42,7 +42,9 @@ export const calculateProfitLoss = (
   }
 
   // P/L if closed now
-  const cashOnClose = currentPrice * contracts * 100 * (buyOrSell === 'buy' ? -1 : 1);
+  // When closing a long position you receive cash, while closing a short
+  // position requires paying cash to buy it back. Adjust the sign accordingly.
+  const cashOnClose = currentPrice * contracts * 100 * (buyOrSell === 'buy' ? 1 : -1);
   const ifSoldNow = totalPremium + cashOnClose;
 
   // P/L at expiration
