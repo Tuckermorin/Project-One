@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Calendar, Eye, Copy, Edit, XCircle } from 'lucide-react';
+import { Trash2, Calendar, Eye, Copy, Edit } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
 import { formatCurrency, formatProfitLoss } from '../../utils/formatters';
 import Button from '../common/Button';
@@ -10,16 +10,14 @@ interface ContractCardProps {
   onDelete: () => void;
   onClone: () => void;
   onEdit: () => void;
-  onClose: () => void;
 }
 
-const ContractCard: React.FC<ContractCardProps> = ({
-  contract,
-  onClick,
-  onDelete,
-  onClone,
-  onEdit,
-  onClose
+const ContractCard: React.FC<ContractCardProps> = ({ 
+  contract, 
+  onClick, 
+  onDelete, 
+  onClone, 
+  onEdit 
 }) => {
   const isCredit = contract.expectedCreditOrDebit > 0;
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -61,31 +59,21 @@ const ContractCard: React.FC<ContractCardProps> = ({
             >
               <Edit className="h-4 w-4 text-green-500" />
             </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClone?.();
-            }}
-            className="p-1.5 hover:bg-blue-50 rounded-lg"
-            title="Clone and edit contract"
-          >
-            <Copy className="h-4 w-4 text-blue-500" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose?.();
-            }}
-            className="p-1.5 hover:bg-yellow-50 rounded-lg"
-            title="Close position"
-          >
-            <XCircle className="h-4 w-4 text-yellow-600" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClone?.();
+              }}
+              className="p-1.5 hover:bg-blue-50 rounded-lg"
+              title="Clone and edit contract"
+            >
+              <Copy className="h-4 w-4 text-blue-500" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               className="p-1.5 hover:bg-red-50 rounded-lg"
               title="Delete contract"
             >

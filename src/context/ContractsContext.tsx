@@ -20,10 +20,7 @@ interface ContractsContextType extends ContractsState {
   updateContract: (contract: OptionContract) => Promise<void>;
   deleteContract: (id: string) => void;
   expireContract: (id: string, finalUnderlyingPrice: number, analysis?: OptionContract['analysis']) => Promise<void>;
-  closeContract: (id: string, closingOptionPrice: number, closingUnderlyingPrice: number) => Promise<void>;
-
   closeContract: (id: string, finalUnderlyingPrice: number, finalOptionPrice: number) => Promise<void>;
-
   getActiveContracts: () => OptionContract[];
   getExpiredContracts: () => OptionContract[];
   checkAndUpdateExpiredContracts: () => void;
@@ -139,37 +136,16 @@ export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-
-  const closeContract = async (
-    id: string,
-    closingOptionPrice: number,
-    closingUnderlyingPrice: number
-  ) => {
-
   const closeContract = async (id: string, finalUnderlyingPrice: number, finalOptionPrice: number) => {
-
     try {
       const contract = state.contracts.find(c => c.id === id);
       if (!contract) return;
-
-
-      const result = calculateProfitLoss(
-        contract,
-        closingUnderlyingPrice,
-        closingOptionPrice
-      );
-
-      const finalData = {
-        status: 'closed' as const,
-        finalUnderlyingPrice: closingUnderlyingPrice,
-        finalProfitLoss: result.ifSoldNow,
 
       const pl = calculateProfitLoss(contract, finalUnderlyingPrice, finalOptionPrice);
       const finalData = {
         status: 'closed' as const,
         finalUnderlyingPrice,
         finalProfitLoss: pl.ifSoldNow,
-
         closedDate: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

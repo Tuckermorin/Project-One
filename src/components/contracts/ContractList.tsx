@@ -8,7 +8,6 @@ import { formatProfitLoss, getProfitLossColor } from '../../utils/formatters';
 import Button from '../common/Button';
 import ContractCard from './ContractCard';
 import PortfolioAnalytics from '../portfolio/PortfolioAnalytics';
-import CloseContractModal from './CloseContractModal';
 
 interface ContractListProps {
   onViewContract: (contract: OptionContract) => void;
@@ -28,7 +27,6 @@ const ContractList: React.FC<ContractListProps> = ({
   const { deleteContract, getActiveContracts } = useContracts();
   const activeContracts = getActiveContracts();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [closingContract, setClosingContract] = useState<OptionContract | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
   const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
 
@@ -231,18 +229,9 @@ const ContractList: React.FC<ContractListProps> = ({
                   onEditContract(contractData as OptionContract);
                 }}
                 onEdit={() => onEditContract(contract)}
-                onClose={() => setClosingContract(contract)}
               />
             ))}
           </div>
-        )}
-
-        {closingContract && (
-          <CloseContractModal
-            contract={closingContract}
-            onDone={() => setClosingContract(null)}
-            onCancel={() => setClosingContract(null)}
-          />
         )}
 
         {/* Delete Confirmation Modal */}
