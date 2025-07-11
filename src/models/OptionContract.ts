@@ -19,6 +19,23 @@ export interface OptionContract {
   symbol?: string;
   /** Optional notes about the trade */
   notes?: string;
+  /** Status of the contract */
+  status?: 'active' | 'expired' | 'closed';
+  /** Final underlying price at expiration */
+  finalUnderlyingPrice?: number;
+  /** Final profit/loss when closed/expired */
+  finalProfitLoss?: number;
+  /** Date when contract was closed or expired */
+  closedDate?: string;
+  /** Analysis of why the trade was profitable/unprofitable */
+  analysis?: {
+    wasProfit: boolean;
+    reasonForOutcome: string;
+    lessonsLearned: string;
+    marketConditions: string;
+    whatWentRight?: string;
+    whatWentWrong?: string;
+  };
 }
 
 export type ContractAction = 'buy' | 'sell';
