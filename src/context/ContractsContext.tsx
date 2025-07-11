@@ -1,42 +1,39 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { OptionContract } from '../models/OptionContract';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { contractsApi } from '../services/api';
 
 type ContractsAction =
+  | { type: 'SET_CONTRACTS'; payload: OptionContract[] }
   | { type: 'ADD_CONTRACT'; payload: OptionContract }
-  | { type: 'UPDATE_CONTRACT'; payload: OptionContract }
   | { type: 'DELETE_CONTRACT'; payload: string }
-  | { type: 'LOAD_CONTRACTS'; payload: OptionContract[] };
+  | { type: 'UPDATE_CONTRACT'; payload: OptionContract };
 
 interface ContractsState {
   contracts: OptionContract[];
 }
 
 interface ContractsContextType extends ContractsState {
-  addContract: (contract: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateContract: (contract: OptionContract) => void;
+  addContract: (contract: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateContract: (contract: OptionContract) => Promise<void>;
   deleteContract: (id: string) => void;
-  cloneContract: (contract: OptionContract) => void;
 }
 
 const ContractsContext = createContext<ContractsContextType | undefined>(undefined);
 
 const contractsReducer = (state: ContractsState, action: ContractsAction): ContractsState => {
   switch (action.type) {
-    case 'LOAD_CONTRACTS':
+    case 'SET_CONTRACTS':
       return { contracts: action.payload };
     case 'ADD_CONTRACT':
-      return { contracts: [...state.contracts, action.payload] };
-    case 'UPDATE_CONTRACT':
-      return {
-        contracts: state.contracts.map(contract =>
-          contract.id === action.payload.id ? action.payload : contract
-        ),
-      };
+      return { contracts: [action.payload, ...state.contracts] };
     case 'DELETE_CONTRACT':
-      return {
-        contracts: state.contracts.filter(contract => contract.id !== action.payload),
-      };
+      return { contracts: state.contracts.filter(c => c.id !== action.payload) };
+    case 'UPDATE_CONTRACT':
+      return { 
+        contracts: state.contracts.map(c => 
+          c.id === action.payload.id ? action.payload : c
+    ) 
+  };
     default:
       return state;
   }
@@ -44,70 +41,56 @@ const contractsReducer = (state: ContractsState, action: ContractsAction): Contr
 
 export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(contractsReducer, { contracts: [] });
-  const [storedContracts, setStoredContracts] = useLocalStorage<OptionContract[]>('option-contracts', []);
-
-useEffect(() => {
-    dispatch({ type: 'LOAD_CONTRACTS', payload: storedContracts });
-  }, []); // Remove storedContracts dependency to avoid infinite loop
 
   useEffect(() => {
-    if (state.contracts.length > 0 || storedContracts.length > 0) {
-      setStoredContracts(state.contracts);
+    loadContracts();
+  }, []);
+
+  const loadContracts = async () => {
+    try {
+      const contracts = await contractsApi.getAll();
+      dispatch({ type: 'SET_CONTRACTS', payload: contracts });
+    } catch (error) {
+      console.error('Failed to load contracts:', error);
     }
-  }, [state.contracts]); // Remove setStoredContracts dependency
-
-  const addContract = (contractData: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString();
-    const newContract: OptionContract = {
-      ...contractData,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    dispatch({ type: 'ADD_CONTRACT', payload: newContract });
   };
 
-  const updateContract = (contract: OptionContract) => {
-    const updatedContract = { ...contract, updatedAt: new Date().toISOString() };
-    dispatch({ type: 'UPDATE_CONTRACT', payload: updatedContract });
+  const addContract = async (contractData: Omit<OptionContract, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newContract = await contractsApi.create(contractData);
+      dispatch({ type: 'ADD_CONTRACT', payload: newContract });
+    } catch (error) {
+      console.error('Failed to create contract:', error);
+    }
   };
 
-  const deleteContract = (id: string) => {
-    dispatch({ type: 'DELETE_CONTRACT', payload: id });
+  const deleteContract = async (id: string) => {
+    try {
+      await contractsApi.delete(id);
+      dispatch({ type: 'DELETE_CONTRACT', payload: id });
+    } catch (error) {
+      console.error('Failed to delete contract:', error);
+    }
   };
 
-  const cloneContract = (contract: OptionContract) => {
-    const now = new Date().toISOString();
-    const clonedContract: OptionContract = {
-      ...contract,
-      id: crypto.randomUUID(),
-      symbol: contract.symbol ? `${contract.symbol} (Copy)` : 'Contract (Copy)',
-      createdAt: now,
-      updatedAt: now,
-    };
-    dispatch({ type: 'ADD_CONTRACT', payload: clonedContract });
+  const updateContract = async (contract: OptionContract) => {
+    try {
+      const updatedContract = await contractsApi.update(contract.id, contract);
+      dispatch({ type: 'UPDATE_CONTRACT', payload: updatedContract });
+    } catch (error) {
+      console.error('Failed to update contract:', error);
+    }
   };
 
   return (
-    <ContractsContext.Provider
-      value={{
-        ...state,
-        addContract,
-        updateContract,
-        deleteContract,
-        cloneContract,
-      }}
-    >
+    <ContractsContext.Provider value={{ ...state, addContract, updateContract, deleteContract }}>
       {children}
     </ContractsContext.Provider>
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useContracts = () => {
   const context = useContext(ContractsContext);
-  if (context === undefined) {
-    throw new Error('useContracts must be used within a ContractsProvider');
-  }
+  if (!context) throw new Error('useContracts must be used within ContractsProvider');
   return context;
 };
