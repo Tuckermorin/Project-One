@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { OptionContract } from '../models/OptionContract';
 import { contractsApi } from '../services/api';
+import { calculateProfitLoss } from '../utils/profitLossCalculator';
 
 type ContractsAction =
   | { type: 'SET_CONTRACTS'; payload: OptionContract[] }
   | { type: 'ADD_CONTRACT'; payload: OptionContract }
   | { type: 'DELETE_CONTRACT'; payload: string }
   | { type: 'UPDATE_CONTRACT'; payload: OptionContract }
-  | { type: 'EXPIRE_CONTRACT'; payload: { id: string; finalData: Partial<OptionContract> } };
+  | { type: 'EXPIRE_CONTRACT'; payload: { id: string; finalData: Partial<OptionContract> } }
+  | { type: 'CLOSE_CONTRACT'; payload: { id: string; finalData: Partial<OptionContract> } };
 
 interface ContractsState {
   contracts: OptionContract[];
@@ -18,6 +20,7 @@ interface ContractsContextType extends ContractsState {
   updateContract: (contract: OptionContract) => Promise<void>;
   deleteContract: (id: string) => void;
   expireContract: (id: string, finalUnderlyingPrice: number, analysis?: OptionContract['analysis']) => Promise<void>;
+  closeContract: (id: string, finalUnderlyingPrice: number, finalOptionPrice: number) => Promise<void>;
   getActiveContracts: () => OptionContract[];
   getExpiredContracts: () => OptionContract[];
   checkAndUpdateExpiredContracts: () => void;
@@ -41,9 +44,17 @@ const contractsReducer = (state: ContractsState, action: ContractsAction): Contr
       };
     case 'EXPIRE_CONTRACT':
       return {
-        contracts: state.contracts.map(c => 
-          c.id === action.payload.id 
+        contracts: state.contracts.map(c =>
+          c.id === action.payload.id
             ? { ...c, ...action.payload.finalData, status: 'expired' as const }
+            : c
+        )
+      };
+    case 'CLOSE_CONTRACT':
+      return {
+        contracts: state.contracts.map(c =>
+          c.id === action.payload.id
+            ? { ...c, ...action.payload.finalData, status: 'closed' as const }
             : c
         )
       };
@@ -125,6 +136,27 @@ export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const closeContract = async (id: string, finalUnderlyingPrice: number, finalOptionPrice: number) => {
+    try {
+      const contract = state.contracts.find(c => c.id === id);
+      if (!contract) return;
+
+      const pl = calculateProfitLoss(contract, finalUnderlyingPrice, finalOptionPrice);
+      const finalData = {
+        status: 'closed' as const,
+        finalUnderlyingPrice,
+        finalProfitLoss: pl.ifSoldNow,
+        closedDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updatedContract = await contractsApi.update(id, { ...contract, ...finalData });
+      dispatch({ type: 'CLOSE_CONTRACT', payload: { id, finalData } });
+    } catch (error) {
+      console.error('Failed to close contract:', error);
+    }
+  };
+
   const getActiveContracts = () => state.contracts.filter(c => c.status !== 'expired' && c.status !== 'closed');
   
   const getExpiredContracts = () => state.contracts.filter(c => c.status === 'expired' || c.status === 'closed');
@@ -158,11 +190,12 @@ export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...state, 
       addContract, 
       updateContract, 
-      deleteContract, 
-      expireContract, 
-      getActiveContracts, 
+      deleteContract,
+      expireContract,
+      closeContract,
+      getActiveContracts,
       getExpiredContracts,
-      checkAndUpdateExpiredContracts 
+      checkAndUpdateExpiredContracts
     }}>
       {children}
     </ContractsContext.Provider>

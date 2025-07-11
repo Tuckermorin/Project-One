@@ -39,4 +39,18 @@ describe('Profit/Loss Calculator', () => {
     // At expiration: max(0, 95 - 100) * 1 * 100 + (-5 * 1 * 100) = 0 - 500 = -500
     expect(result.ifExercisedAtExpiration).toBe(-500);
   });
+
+  test('calculates profit for short call', () => {
+    const shortContract: OptionContract = {
+      ...mockContract,
+      buyOrSell: 'sell',
+      expectedCreditOrDebit: 5,
+    };
+    const result = calculateProfitLoss(shortContract, 95, 1);
+
+    // If sold now: 5*100 - 1*100 = 400
+    expect(result.ifSoldNow).toBe(400);
+    // At expiration: premium (500) - intrinsic (0) = 500
+    expect(result.ifExercisedAtExpiration).toBe(500);
+  });
 });
