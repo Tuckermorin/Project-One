@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, ArrowLeft, Users, Calculator, PieChart, History } from 'lucide-react';
+import { Plus, ArrowLeft, Users, PieChart, History, Table, LayoutGrid } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
 import type { PortfolioGroup } from '../../types/portfolio';
 import { useContracts } from '../../context/ContractsContext';
@@ -7,6 +7,7 @@ import { calculateProfitLoss } from '../../utils/profitLossCalculator';
 import { formatProfitLoss, getProfitLossColor } from '../../utils/formatters';
 import Button from '../common/Button';
 import ContractCard from './ContractCard';
+import ContractTable from './ContractTable';
 import PortfolioAnalytics from '../portfolio/PortfolioAnalytics';
 
 interface ContractListProps {
@@ -29,6 +30,7 @@ const ContractList: React.FC<ContractListProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
   const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   // Group contracts by symbol
   const portfolioGroups = useMemo((): PortfolioGroup[] => {
@@ -105,6 +107,18 @@ const ContractList: React.FC<ContractListProps> = ({
             <Button onClick={onShowExpired} variant="secondary" size="lg">
               <History className="h-5 w-5" />
               History
+            </Button>
+            <Button
+              onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+              variant="secondary"
+              size="lg"
+            >
+              {viewMode === 'table' ? (
+                <LayoutGrid className="h-5 w-5" />
+              ) : (
+                <Table className="h-5 w-5" />
+              )}
+              {viewMode === 'table' ? ' Card View' : ' Table View'}
             </Button>
             <Button onClick={onNewContract} size="lg">
               <Plus className="h-5 w-5" />
@@ -196,7 +210,7 @@ const ContractList: React.FC<ContractListProps> = ({
           </div>
         )}
 
-        {/* Contracts Grid */}
+        {/* Contracts Grid / Table */}
         {displayContracts.length === 0 ? (
           <div className="text-center py-16">
             <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 max-w-md mx-auto">
@@ -217,21 +231,25 @@ const ContractList: React.FC<ContractListProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {displayContracts.map(contract => (
-              <ContractCard
-                key={contract.id}
-                contract={contract}
-                onClick={() => onViewContract(contract)}
-                onDelete={() => setShowDeleteConfirm(contract.id)}
-                onClone={() => {
-                  const { id, createdAt, updatedAt, ...contractData } = contract;
-                  onEditContract(contractData as OptionContract);
-                }}
-                onEdit={() => onEditContract(contract)}
-              />
-            ))}
-          </div>
+          viewMode === 'table' ? (
+            <ContractTable contracts={displayContracts} onViewContract={onViewContract} />
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {displayContracts.map(contract => (
+                <ContractCard
+                  key={contract.id}
+                  contract={contract}
+                  onClick={() => onViewContract(contract)}
+                  onDelete={() => setShowDeleteConfirm(contract.id)}
+                  onClone={() => {
+                    const { id, createdAt, updatedAt, ...contractData } = contract;
+                    onEditContract(contractData as OptionContract);
+                  }}
+                  onEdit={() => onEditContract(contract)}
+                />
+              ))}
+            </div>
+          )
         )}
 
         {/* Delete Confirmation Modal */}

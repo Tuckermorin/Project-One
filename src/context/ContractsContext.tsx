@@ -129,7 +129,7 @@ export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedAt: new Date().toISOString()
       };
 
-      const updatedContract = await contractsApi.update(id, { ...contract, ...finalData });
+      await contractsApi.update(id, { ...contract, ...finalData });
       dispatch({ type: 'EXPIRE_CONTRACT', payload: { id, finalData } });
     } catch (error) {
       console.error('Failed to expire contract:', error);
@@ -150,7 +150,7 @@ export const ContractsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedAt: new Date().toISOString(),
       };
 
-      const updatedContract = await contractsApi.update(id, { ...contract, ...finalData });
+      await contractsApi.update(id, { ...contract, ...finalData });
       dispatch({ type: 'CLOSE_CONTRACT', payload: { id, finalData } });
     } catch (error) {
       console.error('Failed to close contract:', error);
