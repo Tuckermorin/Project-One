@@ -10,6 +10,8 @@ import ContractCard from './ContractCard';
 import ContractTable from './ContractTable';
 import PortfolioAnalytics from '../portfolio/PortfolioAnalytics';
 import GroupedContractView from './GroupedContractView';
+// US-18 QuickSimulator import
+import QuickSimulator from './QuickSimulator';
 
 interface ContractListProps {
   onViewContract: (contract: OptionContract) => void;
@@ -151,6 +153,18 @@ const ContractList: React.FC<ContractListProps> = ({
         {/* Analytics Dashboard */}
         <PortfolioAnalytics contracts={displayContracts} />
 
+        {/* US-18 Quick Simulator for selected underlying */}
+        {selectedGroup && (
+          <QuickSimulator
+            symbol={selectedGroup.symbol}
+            contracts={selectedGroup.contracts}
+            initialPrice={groupSimPrices[selectedGroup.symbol]}
+            onPriceChange={(price) =>
+              setGroupSimPrices(prev => ({ ...prev, [selectedGroup.symbol]: price }))
+            }
+          />
+        )}
+
         {/* Portfolio Groups Overview - only show when viewing all contracts */}
         {!groupView && !selectedGroup && portfolioGroups.length > 1 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
@@ -271,9 +285,11 @@ const ContractList: React.FC<ContractListProps> = ({
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {displayContracts.map(contract => (
+                // US-18 pass simulator price when viewing a specific underlying
                 <ContractCard
                   key={contract.id}
                   contract={contract}
+                  simPrice={selectedGroup ? groupSimPrices[selectedGroup.symbol] : undefined}
                   onClick={() => onViewContract(contract)}
                   onDelete={() => setShowDeleteConfirm(contract.id)}
                   onClone={() => {

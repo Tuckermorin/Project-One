@@ -1,7 +1,8 @@
 import React from 'react';
 import { Trash2, Calendar, Eye, Copy, Edit } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
-import { formatCurrency, formatProfitLoss } from '../../utils/formatters';
+import { formatCurrency, formatProfitLoss, getProfitLossColor } from '../../utils/formatters';
+import { calculateProfitLoss } from '../../utils/profitLossCalculator';
 import Button from '../common/Button';
 // US-3 imports for risk display and payoff thumbnail
 import PayoffDiagram from './PayoffDiagram';
@@ -13,14 +14,17 @@ interface ContractCardProps {
   onDelete: () => void;
   onClone: () => void;
   onEdit: () => void;
+  // US-18 optional simulated price for quick simulator
+  simPrice?: number;
 }
 
-const ContractCard: React.FC<ContractCardProps> = ({ 
-  contract, 
-  onClick, 
-  onDelete, 
-  onClone, 
-  onEdit 
+const ContractCard: React.FC<ContractCardProps> = ({
+  contract,
+  onClick,
+  onDelete,
+  onClone,
+  onEdit,
+  simPrice
 }) => {
   const isCredit = contract.expectedCreditOrDebit > 0;
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -31,6 +35,10 @@ const ContractCard: React.FC<ContractCardProps> = ({
   const isExpiringSoon = daysToExpiry <= 7;
   // Calculate risk scores for US-3 visual indicators
   const risk = calculateRisk(contract);
+  // US-18 calculate simulated profit/loss when a simulator price is provided
+  const simulatedPL = typeof simPrice === 'number' && simPrice > 0
+    ? calculateProfitLoss(contract, simPrice).ifSoldNow
+    : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 group">
@@ -139,7 +147,15 @@ const ContractCard: React.FC<ContractCardProps> = ({
             {formatProfitLoss(contract.expectedCreditOrDebit * contract.contracts * 100)}
           </span>
         </div>
-        
+
+        {/* US-18 Display simulated P/L when provided */}
+        {simulatedPL !== null && (
+          <div className="flex justify-between items-center mb-3 text-sm">
+            <span className="text-gray-600">Simulated P/L</span>
+            <span className={`font-medium ${getProfitLossColor(simulatedPL)}`}>{formatProfitLoss(simulatedPL)}</span>
+          </div>
+        )}
+
         <div className="flex justify-between text-sm text-gray-600 mb-3">
           <span>Breakeven: {formatCurrency(contract.breakeven)}</span>
           <span className="font-medium">{contract.chanceOfProfit}% PoP</span>
