@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, ArrowLeft, Users, PieChart, History, Table, LayoutGrid } from 'lucide-react';
+import { Plus, ArrowLeft, Users, PieChart, History, Table, LayoutGrid, Group, Ungroup } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
 import type { PortfolioGroup } from '../../types/portfolio';
 import { useContracts } from '../../context/ContractsContext';
@@ -9,6 +9,7 @@ import Button from '../common/Button';
 import ContractCard from './ContractCard';
 import ContractTable from './ContractTable';
 import PortfolioAnalytics from '../portfolio/PortfolioAnalytics';
+import GroupedContractView from './GroupedContractView';
 
 interface ContractListProps {
   onViewContract: (contract: OptionContract) => void;
@@ -31,6 +32,7 @@ const ContractList: React.FC<ContractListProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<PortfolioGroup | null>(null);
   const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [groupView, setGroupView] = useState(false);
 
   // Group contracts by symbol
   const portfolioGroups = useMemo((): PortfolioGroup[] => {
@@ -74,7 +76,11 @@ const ContractList: React.FC<ContractListProps> = ({
     setShowDeleteConfirm(null);
   };
 
-  const displayContracts = selectedGroup ? selectedGroup.contracts : activeContracts;
+  const displayContracts = groupView
+    ? activeContracts
+    : selectedGroup
+      ? selectedGroup.contracts
+      : activeContracts;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -109,6 +115,21 @@ const ContractList: React.FC<ContractListProps> = ({
               History
             </Button>
             <Button
+              onClick={() => {
+                setGroupView(!groupView);
+                setSelectedGroup(null);
+              }}
+              variant="secondary"
+              size="lg"
+            >
+              {groupView ? (
+                <Ungroup className="h-5 w-5" />
+              ) : (
+                <Group className="h-5 w-5" />
+              )}
+              {groupView ? ' Ungroup' : ' Grouped'}
+            </Button>
+            <Button
               onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
               variant="secondary"
               size="lg"
@@ -131,7 +152,7 @@ const ContractList: React.FC<ContractListProps> = ({
         <PortfolioAnalytics contracts={displayContracts} />
 
         {/* Portfolio Groups Overview - only show when viewing all contracts */}
-        {!selectedGroup && portfolioGroups.length > 1 && (
+        {!groupView && !selectedGroup && portfolioGroups.length > 1 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -139,7 +160,7 @@ const ContractList: React.FC<ContractListProps> = ({
             </h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {portfolioGroups.map(group => (
-                <div 
+                <div
                   key={group.symbol}
                   onClick={() => setSelectedGroup(group)}
                   className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 hover:from-gray-100 hover:to-gray-200 cursor-pointer transition-all duration-200 border border-gray-200"
@@ -177,7 +198,7 @@ const ContractList: React.FC<ContractListProps> = ({
                           const pl = calculateProfitLoss(contract, currentPrice);
                           return sum + pl.ifSoldNow;
                         }, 0) : 0;
-                        
+
                         return (
                           <>
                             <input
@@ -210,6 +231,20 @@ const ContractList: React.FC<ContractListProps> = ({
           </div>
         )}
 
+        {groupView ? (
+          <GroupedContractView
+            groups={portfolioGroups}
+            viewMode={viewMode}
+            onViewContract={onViewContract}
+            onEditContract={onEditContract}
+            onCloneContract={(contract) => {
+              const { id, createdAt, updatedAt, ...data } = contract;
+              onEditContract(data as OptionContract);
+            }}
+            onDeleteContract={(id) => setShowDeleteConfirm(id)}
+          />
+        ) : (
+          <>
         {/* Contracts Grid / Table */}
         {displayContracts.length === 0 ? (
           <div className="text-center py-16">
@@ -250,6 +285,8 @@ const ContractList: React.FC<ContractListProps> = ({
               ))}
             </div>
           )
+        )}
+          </>
         )}
 
         {/* Delete Confirmation Modal */}
