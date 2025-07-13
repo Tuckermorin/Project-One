@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, ArrowLeft, Users, PieChart, History, Table, LayoutGrid, Group, Ungroup } from 'lucide-react';
+import { Plus, ArrowLeft, Users, PieChart, History, Table, LayoutGrid, Group, Ungroup, Briefcase } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
 import type { PortfolioGroup } from '../../types/portfolio';
 import { useContracts } from '../../context/ContractsContext';
@@ -10,6 +10,10 @@ import ContractCard from './ContractCard';
 import ContractTable from './ContractTable';
 import PortfolioAnalytics from '../portfolio/PortfolioAnalytics';
 import GroupedContractView from './GroupedContractView';
+// US-20: Portfolio management components
+import PortfolioHeader from '../portfolio/PortfolioHeader';
+import PortfolioSummary from '../portfolio/PortfolioSummary';
+import HoldingsManager from '../portfolio/HoldingsManager';
 // US-18 QuickSimulator import
 import QuickSimulator from './QuickSimulator';
 
@@ -35,6 +39,8 @@ const ContractList: React.FC<ContractListProps> = ({
   const [groupSimPrices, setGroupSimPrices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [groupView, setGroupView] = useState(false);
+  // US-20: Holdings manager state
+  const [showHoldings, setShowHoldings] = useState(false);
 
   // Group contracts by symbol
   const portfolioGroups = useMemo((): PortfolioGroup[] => {
@@ -116,6 +122,10 @@ const ContractList: React.FC<ContractListProps> = ({
               <History className="h-5 w-5" />
               History
             </Button>
+            <Button onClick={() => setShowHoldings(true)} variant="secondary" size="lg">
+              <Briefcase className="h-5 w-5" />
+              Holdings
+            </Button>
             <Button
               onClick={() => {
                 setGroupView(!groupView);
@@ -147,6 +157,16 @@ const ContractList: React.FC<ContractListProps> = ({
               <Plus className="h-5 w-5" />
               New Contract
             </Button>
+          </div>
+        </div>
+
+        {/* US-20: Portfolio Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <PortfolioHeader />
+          </div>
+          <div>
+            <PortfolioSummary />
           </div>
         </div>
 
@@ -304,6 +324,9 @@ const ContractList: React.FC<ContractListProps> = ({
         )}
           </>
         )}
+
+        {/* US-20: Holdings Manager Modal */}
+        <HoldingsManager open={showHoldings} onClose={() => setShowHoldings(false)} />
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { OptionContract } from './models/OptionContract';
 import { ContractsProvider, useContracts } from './context/ContractsContext';
+import { PortfolioProvider } from './context/PortfolioContext'; // US-20: Added portfolio context
 import ContractList from './components/contracts/ContractList';
 import ContractDetail from './components/contracts/ContractDetail';
 import ContractForm from './components/contracts/ContractForm';
@@ -74,7 +75,9 @@ function AppContent() {
 function App() {
   return (
     <ContractsProvider>
-      <AppContent />
+      <PortfolioProvider>
+        <AppContent />
+      </PortfolioProvider>
     </ContractsProvider>
   );
 }
