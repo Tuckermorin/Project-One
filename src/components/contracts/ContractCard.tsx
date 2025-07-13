@@ -3,6 +3,9 @@ import { Trash2, Calendar, Eye, Copy, Edit } from 'lucide-react';
 import type { OptionContract } from '../../models/OptionContract';
 import { formatCurrency, formatProfitLoss } from '../../utils/formatters';
 import Button from '../common/Button';
+// US-3 imports for risk display and payoff thumbnail
+import PayoffDiagram from './PayoffDiagram';
+import { calculateRisk, getRiskColor } from '../../utils/riskCalculator';
 
 interface ContractCardProps {
   contract: OptionContract;
@@ -21,11 +24,13 @@ const ContractCard: React.FC<ContractCardProps> = ({
 }) => {
   const isCredit = contract.expectedCreditOrDebit > 0;
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
-  
+
   const today = new Date();
   const expiry = new Date(contract.expirationDate);
   const daysToExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const isExpiringSoon = daysToExpiry <= 7;
+  // Calculate risk scores for US-3 visual indicators
+  const risk = calculateRisk(contract);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 group">
@@ -89,6 +94,40 @@ const ContractCard: React.FC<ContractCardProps> = ({
           <span className="text-sm text-gray-500 font-medium">
             {contract.contracts} contract{contract.contracts !== 1 ? 's' : ''}
           </span>
+        </div>
+      </div>
+
+      {/* Risk Bars & Payoff Diagram - US-3 */}
+      <div className="px-4 pb-3 flex gap-3">
+        <PayoffDiagram contract={contract} width={80} height={50} />
+        <div className="flex-1 space-y-1 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-gray-500">Decay</span>
+            <div className="flex-1 h-2 bg-gray-100 rounded">
+              <div
+                className={`h-2 rounded ${getRiskColor(risk.timeDecay)}`}
+                style={{ width: `${risk.timeDecay * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-gray-500">Delta</span>
+            <div className="flex-1 h-2 bg-gray-100 rounded">
+              <div
+                className={`h-2 rounded ${getRiskColor(risk.delta)}`}
+                style={{ width: `${risk.delta * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-gray-500">Vol</span>
+            <div className="flex-1 h-2 bg-gray-100 rounded">
+              <div
+                className={`h-2 rounded ${getRiskColor(risk.volatility)}`}
+                style={{ width: `${risk.volatility * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
